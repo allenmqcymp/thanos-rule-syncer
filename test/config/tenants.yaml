@@ -4,3 +4,4 @@ tenants:
   oidc:
     clientID: observatorium
     issuerURL: http://localhost:4444/
+  ruleFilePath: ./test/metrics_test/test-oidc-rulefile.yaml

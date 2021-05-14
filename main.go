@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"syscall"
 	"time"
 
 	"github.com/coreos/go-oidc"
@@ -57,6 +56,7 @@ func main() {
 	client := &http.Client{}
 
 	if cfg.oidc.issuerURL != "" {
+		fmt.Println("beginning OIDC process!!")
 		provider, err := oidc.NewProvider(context.Background(), cfg.oidc.issuerURL)
 		if err != nil {
 			log.Fatalf("OIDC provider initialization failed: %v", err)
@@ -75,29 +75,10 @@ func main() {
 			}
 		}
 
-		caFile, err := ioutil.ReadFile("../observatorium/tmp/certs/ca.pem")
-		if err != nil {
-			log.Fatalf("failed to read CA file: %v", err)
-		}
-
-		certPool := x509.NewCertPool()
-		certPool.AppendCertsFromPEM(caFile)
-
-		clientCert, err := tls.LoadX509KeyPair("../observatorium/tmp/certs/client.pem", "../observatorium/tmp/certs/client.key")
-		if err != nil {
-			log.Fatalf("failed to load client key pair: %v", err)
-		}
-
-		tlsConfig := tls.Config{
-			RootCAs:      certPool,
-			Certificates: []tls.Certificate{clientCert},
-		}
-
-		client.Transport = &http.Transport{TLSClientConfig: &tlsConfig}
 	}
 
 	var gr run.Group
-	gr.Add(run.SignalHandler(ctx, os.Interrupt))
+	gr.Add(run.SignalHandler(ctx, os.Interrupt, syscall.SIGTERM))
 
 	gr.Add(func() error {
 		ticker := time.NewTicker(time.Minute)
